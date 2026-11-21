@@ -283,7 +283,8 @@ button{cursor:pointer}
     $('pmic').hidden=$('mic').hidden;
     if(on){
       keepAwake();
-      try{ var el=document.documentElement, rq=el.requestFullscreen||el.webkitRequestFullscreen; if(rq){ var p=rq.call(el); if(p&&p.catch) p.catch(function(){}); } }catch(e){}
+      var installed=window.matchMedia&&(matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches);
+      if(!installed) try{ var el=document.documentElement, rq=el.requestFullscreen||el.webkitRequestFullscreen; if(rq){ var p=rq.call(el); if(p&&p.catch) p.catch(function(){}); } }catch(e){}
     } else {
       try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){}); }catch(e){}
       if(lock){ try{lock.release();}catch(e){} lock=null; }
@@ -371,7 +372,7 @@ button{cursor:pointer}
       else if(c&&c!=='stopped'){ micMsg('No se pudo escuchar ('+c+'). Probá de nuevo o usá el micrófono del teclado.'); }
     });
   }
-  $('mic').onclick=function(){ micTap(false); };
+  $('mic').onclick=function(){ var wasOn=recOn||(d&&d.active&&d.active()); micTap(false); if(!wasOn) present(true); };
   $('pmic').onclick=function(e){ e.stopPropagation(); micTap(true); };
   $('pmsg').onclick=function(e){ e.stopPropagation(); };
 
