@@ -108,9 +108,11 @@ button{cursor:pointer}
 .app.present .exit{display:block}
 .app.present .read-tag{display:none}
 html:has(.app.present), html:has(.app.present) body{background:#003c8f}
-.pmic{right:auto;left:calc(8px + env(safe-area-inset-left,0px))}
-.pmic.live{background:var(--danger);color:#fff}
-.pmsg{display:none;position:absolute;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;font-size:14px;text-align:center;color:var(--read-fg);opacity:.8}
+.pmic{top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:calc(14px + env(safe-area-inset-right,0px));
+  width:64px;height:64px;padding:0;border-radius:50%;background:rgba(255,255,255,.18)}
+.pmic svg{width:32px;height:32px;display:block;margin:auto}
+.pmic.live{background:var(--danger);color:#fff;animation:pulse 1.4s ease-in-out infinite}
+.pmsg{display:none;position:absolute;left:12px;right:90px;bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;font-size:14px;text-align:center;color:var(--read-fg);opacity:.8}
 .app.present .pmsg:not([hidden]){display:block}
 
 @media (min-width:900px) and (orientation:landscape){
@@ -126,7 +128,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
     <div class="read-inner" id="readInner"><p id="out"></p></div>
 
     <button class="exit" id="exit" type="button">Volver</button>
-    <button class="exit pmic" id="pmic" type="button" hidden>🎤 Hablar</button>
+    <button class="exit pmic" id="pmic" type="button" hidden aria-label="Hablar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <p class="pmsg" id="pmsg" hidden></p>
   </div>
 
@@ -213,7 +215,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
   function render(text){
     var t=(text||'').trim();
     if(t){ out.textContent=text.trim(); out.classList.remove('empty'); }
-    else { out.textContent='Escribí abajo'; out.classList.add('empty'); }
+    else { out.textContent=app.classList.contains('present')?'…':'Escribí abajo'; out.classList.add('empty'); }
     fit();
   }
 
@@ -308,7 +310,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
     var s=document.createElement('span'); s.className='partial'; s.textContent=(text&&!/\s$/.test(text)?' ':'')+partial; out.appendChild(s); fit();
   }
   function micMsg(t){ var m=$('micMsg'); m.textContent=t||''; m.hidden=!t; var pm=$('pmsg'); pm.textContent=(t&&t.indexOf('Te escucho')!==0)?t:''; pm.hidden=!pm.textContent; }
-  function setMic(live){ $('mic').classList.toggle('live',live); $('mic').setAttribute('aria-pressed',live); $('micLbl').textContent=live?'Escuchando… tocá para parar':'Hablar'; $('pmic').classList.toggle('live',live); $('pmic').textContent=live?'🎤 Escuchando… tocá para parar':'🎤 Hablar'; }
+  function setMic(live){ $('mic').classList.toggle('live',live); $('mic').setAttribute('aria-pressed',live); $('micLbl').textContent=live?'Escuchando… tocá para parar':'Hablar'; $('pmic').classList.toggle('live',live); $('pmic').setAttribute('aria-label',live?'Escuchando, tocá para parar':'Hablar'); }
   try{
     if(window.claude && claude.use){
       claude.use('dictation').then(function(ns){
@@ -337,7 +339,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
   function webSpeech(){
     if(d) return;
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
-    rec=new SR(); rec.lang='es-AR'; rec.continuous=true; rec.interimResults=true;
+    rec=new SR(); rec.lang='es-AR'; rec.continuous=false; /* stops by itself when Edu pauses, so it doesn't pick up grandma reading aloud */ rec.interimResults=true;
     rec.onstart=function(){ recOn=true; clearTimeout(recWait); setMic(true); micMsg('Te escucho. Hablá ahora.'); };
     rec.onend=function(){ recOn=false; setMic(false); render(txt.value); remember(txt.value); if($('micMsg').textContent.indexOf('Te escucho')===0) micMsg(''); };
     rec.onerror=function(e){ clearTimeout(recWait); micMsg(e.error==='not-allowed'||e.error==='service-not-allowed' ? 'No hay permiso para el micrófono. Tocá los tres puntitos ⋮ y elegí "Abrir en Chrome", o usá el micrófono del teclado.' : (e.error==='no-speech' ? 'No escuché nada. Tocá "Hablar" y hablá más cerca.' : (e.error==='network' ? 'Para dictar hace falta internet. Revisá la conexión y probá de nuevo.' : 'No se pudo escuchar ('+e.error+'). Probá abrirlo en Chrome: ⋮ y "Abrir en Chrome".'))); };
@@ -375,7 +377,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
     });
   }
   $('mic').onclick=function(){ var wasOn=recOn||(d&&d.active&&d.active()); micTap(false); if(!wasOn) present(true); };
-  $('pmic').onclick=function(e){ e.stopPropagation(); micTap(true); };
+  $('pmic').onclick=function(e){ e.stopPropagation(); micTap(false); };
   $('pmsg').onclick=function(e){ e.stopPropagation(); };
 
 
