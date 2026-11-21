@@ -106,6 +106,10 @@ button{cursor:pointer}
   border:0;border-radius:999px;padding:8px 14px;font-size:14px;background:rgba(128,128,128,.25);color:inherit;font-weight:700}
 .app.present .exit{display:block}
 .app.present .read-tag{display:none}
+.pmic{right:auto;left:calc(8px + env(safe-area-inset-left,0px))}
+.pmic.live{background:var(--danger);color:#fff}
+.pmsg{display:none;position:absolute;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;font-size:14px;text-align:center;color:#555}
+.app.present .pmsg:not([hidden]){display:block}
 
 @media (min-width:900px) and (orientation:landscape){
   .app{flex-direction:row}
@@ -120,6 +124,8 @@ button{cursor:pointer}
     <div class="read-inner" id="readInner"><p id="out"></p></div>
 
     <button class="exit" id="exit" type="button">Volver</button>
+    <button class="exit pmic" id="pmic" type="button" hidden>🎤 Hablar</button>
+    <p class="pmsg" id="pmsg" hidden></p>
   </div>
 
   <div class="ctrl">
@@ -274,6 +280,7 @@ button{cursor:pointer}
   function keepAwake(){ try{ if(navigator.wakeLock){ navigator.wakeLock.request('screen').then(function(l){lock=l;}).catch(function(){}); } }catch(e){} }
   function present(on){
     app.classList.toggle('present',on);
+    $('pmic').hidden=$('mic').hidden;
     if(on){
       keepAwake();
       try{ var el=document.documentElement, rq=el.requestFullscreen||el.webkitRequestFullscreen; if(rq){ var p=rq.call(el); if(p&&p.catch) p.catch(function(){}); } }catch(e){}
@@ -285,7 +292,7 @@ button{cursor:pointer}
   }
   $('present').onclick=function(){ present(true); };
   $('exit').onclick=function(e){ e.stopPropagation(); present(false); };
-  read.addEventListener('click',function(e){ if(app.classList.contains('present') && e.target!==$('exit')) present(false); });
+  read.addEventListener('click',function(e){ if(app.classList.contains('present') && e.target!==$('exit') && e.target!==$('pmic') && e.target!==$('pmsg')) present(false); });
   document.addEventListener('fullscreenchange',function(){ if(!document.fullscreenElement && app.classList.contains('present')) present(false); });
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible' && app.classList.contains('present')) keepAwake(); });
 
@@ -297,8 +304,8 @@ button{cursor:pointer}
     out.classList.remove('empty'); out.textContent=text;
     var s=document.createElement('span'); s.className='partial'; s.textContent=(text&&!/\s$/.test(text)?' ':'')+partial; out.appendChild(s); fit();
   }
-  function micMsg(t){ var m=$('micMsg'); m.textContent=t||''; m.hidden=!t; }
-  function setMic(live){ $('mic').classList.toggle('live',live); $('mic').setAttribute('aria-pressed',live); $('micLbl').textContent=live?'Escuchando… tocá para parar':'Hablar'; }
+  function micMsg(t){ var m=$('micMsg'); m.textContent=t||''; m.hidden=!t; var pm=$('pmsg'); pm.textContent=(t&&t.indexOf('Te escucho')!==0)?t:''; pm.hidden=!pm.textContent; }
+  function setMic(live){ $('mic').classList.toggle('live',live); $('mic').setAttribute('aria-pressed',live); $('micLbl').textContent=live?'Escuchando… tocá para parar':'Hablar'; $('pmic').classList.toggle('live',live); $('pmic').textContent=live?'🎤 Escuchando… tocá para parar':'🎤 Hablar'; }
   try{
     if(window.claude && claude.use){
       claude.use('dictation').then(function(ns){
@@ -341,10 +348,10 @@ button{cursor:pointer}
     $('tip').textContent='Tocá "Hablar", decí lo que quieras y aparece en letras grandes. Tocá de nuevo para parar.';
   }
 
-  $('mic').onclick=function(){
+  function micTap(keep){
     if(!d && rec){
       if(recOn){ rec.stop(); return; }
-      micMsg(''); if(txt.value.trim()){ remember(txt.value); txt.value=''; } render('');
+      micMsg(''); if(!keep){ if(txt.value.trim()){ remember(txt.value); txt.value=''; } render(''); }
       micMsg('Prendiendo el micrófono… si te pide permiso, tocá Permitir.');
       clearTimeout(recWait);
       recWait=setTimeout(function(){ if(!recOn) micMsg('El micrófono no arrancó. Si abriste esto desde otra app, tocá los tres puntitos ⋮ y elegí "Abrir en Chrome". Después tocá "Hablar" otra vez.'); },4000);
@@ -354,8 +361,7 @@ button{cursor:pointer}
     if(!d){ micMsg('El micrófono no está disponible en este navegador. Abrí la página en Chrome, o usá el micrófono del teclado.'); return; }
     if(d.active()){ d.stop().catch(function(){}); return; }
     micMsg('');
-    if(txt.value.trim()){ remember(txt.value); txt.value=''; }
-    render('');
+    if(!keep){ if(txt.value.trim()){ remember(txt.value); txt.value=''; } render(''); }
     d.start(useLang?{language:'es'}:undefined).catch(function(err){
       var c=err&&err.code;
       if(c==='unavailable' && useLang){ useLang=false; micMsg('Tocá "Hablar" de nuevo.'); }
@@ -364,7 +370,11 @@ button{cursor:pointer}
       else if(c==='dismissed'){ micMsg('Para usar el micrófono, tocá "Hablar" y aceptá el permiso.'); }
       else if(c&&c!=='stopped'){ micMsg('No se pudo escuchar ('+c+'). Probá de nuevo o usá el micrófono del teclado.'); }
     });
-  };
+  }
+  $('mic').onclick=function(){ micTap(false); };
+  $('pmic').onclick=function(e){ e.stopPropagation(); micTap(true); };
+  $('pmsg').onclick=function(e){ e.stopPropagation(); };
+
 
   /* ---- start ---- */
   window.addEventListener('resize',function(){ requestAnimationFrame(fit); });
