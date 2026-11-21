@@ -376,7 +376,7 @@ html:has(.app.present), html:has(.app.present) body{background:#003c8f}
       else if(c&&c!=='stopped'){ micMsg('No se pudo escuchar ('+c+'). Probá de nuevo o usá el micrófono del teclado.'); }
     });
   }
-  $('mic').onclick=function(){ var wasOn=recOn||(d&&d.active&&d.active()); micTap(false); if(!wasOn) present(true); };
+  $('mic').onclick=function(){ var wasOn=recOn||(d&&d.active&&d.active()); if(!wasOn) present(true); micTap(false); };
   $('pmic').onclick=function(e){ e.stopPropagation(); micTap(false); };
   $('pmsg').onclick=function(e){ e.stopPropagation(); };
 
