@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#003c8f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -54,6 +54,7 @@ button{cursor:pointer}
 .s-wb{--read-bg:#000000;--read-fg:#ffffff}
 .s-yb{--read-bg:#000000;--read-fg:#ffe600}
 .s-by{--read-bg:#ffe600;--read-fg:#000000}
+.s-boca{--read-bg:#003c8f;--read-fg:#ffd100} /* Boca Juniors: yellow on deep blue */
 
 /* Controls */
 .ctrl{flex:0 1 auto;max-height:52%;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
@@ -106,9 +107,10 @@ button{cursor:pointer}
   border:0;border-radius:999px;padding:8px 14px;font-size:14px;background:rgba(128,128,128,.25);color:inherit;font-weight:700}
 .app.present .exit{display:block}
 .app.present .read-tag{display:none}
+html:has(.app.present), html:has(.app.present) body{background:#003c8f}
 .pmic{right:auto;left:calc(8px + env(safe-area-inset-left,0px))}
 .pmic.live{background:var(--danger);color:#fff}
-.pmsg{display:none;position:absolute;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;font-size:14px;text-align:center;color:#555}
+.pmsg{display:none;position:absolute;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;font-size:14px;text-align:center;color:var(--read-fg);opacity:.8}
 .app.present .pmsg:not([hidden]){display:block}
 
 @media (min-width:900px) and (orientation:landscape){
@@ -120,7 +122,7 @@ button{cursor:pointer}
 </style>
 
 <div class="app" id="app">
-  <div class="read s-bw" id="read" aria-live="polite">
+  <div class="read s-boca" id="read" aria-live="polite">
     <div class="read-inner" id="readInner"><p id="out"></p></div>
 
     <button class="exit" id="exit" type="button">Volver</button>
@@ -193,7 +195,7 @@ button{cursor:pointer}
   function load(k,d){ try{ var v=localStorage.getItem('abuela_'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} }
   function save(k,v){ try{ localStorage.setItem('abuela_'+k, JSON.stringify(v)); }catch(e){} }
 
-  var st={ size:4, scheme:'s-bw', flip:false,
+  var st={ size:4, scheme:'s-boca', flip:false,
            phrases:load('phrases',DEFAULT_PH), hist:load('hist',[]) };
 
   /* ---- fit text to panel ---- */
