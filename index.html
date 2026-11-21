@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Letras para la Abuela</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one-screen app. Big reading panel on top, Edu's controls below. Panel can flip 180° to face the person across the table. */
+:root{
+  --bg:#eef0f3; --panel:#ffffff; --ink:#15181d; --muted:#5d6570; --line:#d3d8df;
+  --accent:#1f5fbf; --accent-ink:#ffffff; --chip:#e3e8ef; --danger:#b3261e;
+  --read-bg:#ffffff; --read-fg:#000000;
+  --font:"Atkinson Hyperlegible", "Verdana", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121417; --panel:#1b1f24; --ink:#eef1f5; --muted:#a3abb6; --line:#2e343c;
+  --accent:#6ea2ff; --accent-ink:#0b1220; --chip:#262c34; --danger:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1b1f24; --ink:#eef1f5; --muted:#a3abb6; --line:#2e343c;
+  --accent:#6ea2ff; --accent-ink:#0b1220; --chip:#262c34; --danger:#ff8a80; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;overflow:hidden}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button,textarea,input{font-family:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:flex;flex-direction:column;gap:10px;
+  padding-block:10px;padding-left:max(12px, env(safe-area-inset-left, 0px));padding-right:max(12px, env(safe-area-inset-right, 0px))}
+
+/* Reading panel */
+.read{flex:1 1 55%;min-height:0;position:relative;border-radius:14px;background:var(--read-bg);color:var(--read-fg);
+  border:2px solid var(--line);overflow:hidden;display:flex}
+.read-inner{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:4%;overflow:auto;transition:transform .35s ease}
+.read.flipped .read-inner{transform:rotate(180deg)}
+#out{margin:0;width:100%;text-align:center;font-weight:700;line-height:1.12;white-space:pre-wrap;overflow-wrap:normal;word-break:normal}
+#out.breakall{overflow-wrap:anywhere}
+#out.empty{opacity:.35;font-weight:400}
+.read-tag{position:absolute;left:10px;bottom:8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.5;pointer-events:none}
+
+/* Contrast schemes for the reading panel (chosen, not theme-driven) */
+.s-bw{--read-bg:#ffffff;--read-fg:#000000}
+.s-wb{--read-bg:#000000;--read-fg:#ffffff}
+.s-yb{--read-bg:#000000;--read-fg:#ffe600}
+.s-by{--read-bg:#ffe600;--read-fg:#000000}
+
+/* Controls */
+.ctrl{flex:0 1 auto;max-height:52%;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.compose{display:flex;gap:8px;align-items:stretch}
+#txt{flex:1;min-width:0;resize:none;height:64px;border-radius:12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);
+  font-size:20px;padding:10px 12px;line-height:1.25}
+#txt:focus{border-color:var(--accent);outline:none}
+.btn{border:0;border-radius:12px;padding:10px 14px;font-size:16px;font-weight:700;background:var(--chip);color:var(--ink);min-height:44px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.big{font-size:18px;padding:10px 18px}
+.btn.on{outline:3px solid var(--accent);outline-offset:-3px}
+.btn.danger{color:var(--danger)}
+.btn:active{transform:scale(.97)}
+.send{display:flex;flex-direction:column;gap:6px}
+.send .btn{flex:1}
+.mic{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:20px;min-height:56px}
+.mic svg{width:26px;height:26px;flex:none}
+.mic.live{background:var(--danger);color:#fff;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.75}}
+.mic-msg{font-size:14px;color:var(--muted);margin:0}
+#out .partial{opacity:.55}
+
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.section{display:flex;flex-direction:column;gap:6px;background:var(--panel);border-radius:12px;padding:10px;border:1px solid var(--line)}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.link{background:none;border:0;color:var(--accent);font-size:14px;font-weight:700;padding:4px 2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative;border:0;border-radius:999px;padding:9px 14px;font-size:16px;background:var(--chip);color:var(--ink);min-height:40px}
+.chip .x{display:none;margin-left:6px;color:var(--danger);font-weight:700}
+.editing .chip .x{display:inline}
+.add{display:flex;gap:6px}
+.add input{flex:1;min-width:0;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;padding:8px 10px}
+
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
+.hist li button{width:100%;text-align:left;border:0;background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:16px;display:flex;gap:10px;align-items:baseline}
+.hist time{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;flex:none}
+.hist span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-empty{color:var(--muted);font-size:14px}
+.size{font-variant-numeric:tabular-nums;min-width:4.5em;text-align:center;font-weight:700}
+.sw{width:44px;height:44px;border-radius:10px;border:2px solid var(--line);font-weight:700;font-size:18px}
+.sw.on{outline:3px solid var(--accent);outline-offset:1px}
+.tip{font-size:14px;color:var(--muted);line-height:1.4;margin:0}
+
+/* Presentation mode: only the reading panel */
+.app.present{padding:0;gap:0}
+.app.present .ctrl{display:none}
+.app.present .read{border:0;border-radius:0}
+.exit{display:none;position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:calc(8px + env(safe-area-inset-right,0px));
+  border:0;border-radius:999px;padding:8px 14px;font-size:14px;background:rgba(128,128,128,.25);color:inherit;font-weight:700}
+.app.present .exit{display:block}
+.app.present .read-tag{display:none}
+
+@media (min-width:900px) and (orientation:landscape){
+  .app{flex-direction:row}
+  .read{flex:1 1 65%}
+  .ctrl{flex:0 0 340px;max-height:none}
+}
+@media (prefers-reduced-motion: reduce){.read-inner{transition:none}}
+</style>
+
+<div class="app" id="app">
+  <div class="read s-bw" id="read" aria-live="polite">
+    <div class="read-inner" id="readInner"><p id="out"></p></div>
+
+    <button class="exit" id="exit" type="button">Volver</button>
+  </div>
+
+  <div class="ctrl">
+    <button class="btn big mic" id="mic" type="button" hidden aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="micLbl">Hablar</span></button>
+    <p class="mic-msg" id="micMsg" hidden></p>
+    <div class="compose">
+      <textarea id="txt" placeholder="Escribí acá…" aria-label="Mensaje para la abuela" enterkeyhint="send"></textarea>
+      <div class="send">
+        <button class="btn primary" id="show" type="button">Mostrar</button>
+        <button class="btn danger" id="clear" type="button">Borrar</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn big" id="present" type="button">Pantalla completa</button>
+      <button class="btn big" hidden id="flip" type="button" aria-pressed="false">Dar vuelta</button>
+    </div>
+
+    <div class="section" id="phrasesBox" hidden>
+      <div class="section-head">
+        <span class="label">Frases rápidas</span>
+        <button class="link" id="editPh" type="button">Editar</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="add">
+        <input id="newPh" type="text" placeholder="Nueva frase…" aria-label="Nueva frase rápida">
+        <button class="btn" id="addPh" type="button">Agregar</button>
+      </div>
+    </div>
+
+    <div class="section" hidden>
+      <div class="section-head"><span class="label">Tamaño y colores</span></div>
+      <div class="row">
+        <button class="btn" id="minus" type="button" aria-label="Letra más chica">A−</button>
+        <span class="size" id="sizeLbl">5 de 5</span>
+        <button class="btn" id="plus" type="button" aria-label="Letra más grande">A+</button>
+      </div>
+      <div class="row" id="schemes">
+        <button class="sw" data-s="s-bw" style="background:#fff;color:#000" type="button" aria-label="Negro sobre blanco">Aa</button>
+        <button class="sw" data-s="s-wb" style="background:#000;color:#fff" type="button" aria-label="Blanco sobre negro">Aa</button>
+        <button class="sw" data-s="s-yb" style="background:#000;color:#ffe600" type="button" aria-label="Amarillo sobre negro">Aa</button>
+        <button class="sw" data-s="s-by" style="background:#ffe600;color:#000" type="button" aria-label="Negro sobre amarillo">Aa</button>
+      </div>
+    </div>
+
+    <div class="section" hidden>
+      <div class="section-head">
+        <span class="label">Últimos mensajes</span>
+        <button class="link" id="clrHist" type="button">Borrar historial</button>
+      </div>
+      <ul class="hist" id="hist"></ul>
+    </div>
+
+    <p class="tip" id="tip">Para no escribir: tocá el micrófono del teclado del celular y hablá. Lo que digas aparece escrito.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var app=$('app'), read=$('read'), inner=$('readInner'), out=$('out'), txt=$('txt');
+  var CAPS=[0.12,0.18,0.26,0.38,0.6];  // max letter height as share of the panel
+  var DEFAULT_PH=['Sí','No','Ya vengo','Esperame un ratito','¿Comiste?','¿Querés agua?','¿Tenés frío?','¿Te duele algo?','¿Querés un mate?','Es hora del remedio','Llegó visita','Te quiero mucho'];
+
+  function load(k,d){ try{ var v=localStorage.getItem('abuela_'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} }
+  function save(k,v){ try{ localStorage.setItem('abuela_'+k, JSON.stringify(v)); }catch(e){} }
+
+  var st={ size:4, scheme:'s-bw', flip:false,
+           phrases:load('phrases',DEFAULT_PH), hist:load('hist',[]) };
+
+  /* ---- fit text to panel ---- */
+  function fits(){ return inner.scrollHeight<=inner.clientHeight+1 && out.scrollWidth<=out.clientWidth+1; }
+  function fit(){
+    var h=inner.clientHeight; if(!h) return;
+    out.classList.remove('breakall');
+    var lo=28, hi=Math.max(lo, Math.round(h*CAPS[st.size]/1.12));
+    out.style.fontSize=hi+'px';
+    if(fits()) return;
+    for(var i=0;i<14 && hi-lo>1;i++){ var mid=(lo+hi)>>1; out.style.fontSize=mid+'px'; if(fits()) lo=mid; else hi=mid; }
+    out.style.fontSize=lo+'px';
+    if(!fits()) out.classList.add('breakall');
+  }
+  function render(text){
+    var t=(text||'').trim();
+    if(t){ out.textContent=text.trim(); out.classList.remove('empty'); }
+    else { out.textContent='Escribí abajo'; out.classList.add('empty'); }
+    fit();
+  }
+
+  /* ---- history ---- */
+  function hhmm(ts){ var d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  function remember(t){
+    t=(t||'').trim(); if(!t) return;
+    if(st.hist.length && st.hist[0].t===t) return;
+    st.hist.unshift({t:t, at:Date.now()}); st.hist=st.hist.slice(0,30); save('hist',st.hist); drawHist();
+  }
+  function drawHist(){
+    var ul=$('hist'); ul.innerHTML='';
+    if(!st.hist.length){ var li=document.createElement('li'); li.className='hist-empty'; li.textContent='Acá van a aparecer los mensajes que muestres.'; ul.appendChild(li); return; }
+    st.hist.forEach(function(h){
+      var li=document.createElement('li'), b=document.createElement('button'), tm=document.createElement('time'), sp=document.createElement('span');
+      b.type='button'; tm.textContent=hhmm(h.at); sp.textContent=h.t; b.appendChild(tm); b.appendChild(sp);
+      b.onclick=function(){ txt.value=h.t; render(h.t); };
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  var histArmed=false;
+  $('clrHist').onclick=function(){
+    var b=this;
+    if(!histArmed){ histArmed=true; b.textContent='¿Seguro? Tocá de nuevo'; setTimeout(function(){histArmed=false;b.textContent='Borrar historial';},3000); return; }
+    histArmed=false; b.textContent='Borrar historial'; st.hist=[]; save('hist',st.hist); drawHist();
+  };
+
+  /* ---- phrases ---- */
+  var editing=false;
+  function drawPh(){
+    var box=$('chips'); box.innerHTML='';
+    st.phrases.forEach(function(p,i){
+      var b=document.createElement('button'); b.type='button'; b.className='chip'; b.textContent=p;
+      var x=document.createElement('span'); x.className='x'; x.textContent='×'; x.setAttribute('aria-hidden','true'); b.appendChild(x);
+      b.onclick=function(){
+        if(editing){ st.phrases.splice(i,1); save('phrases',st.phrases); drawPh(); return; }
+        txt.value=p; render(p); remember(p);
+      };
+      box.appendChild(b);
+    });
+  }
+  $('editPh').onclick=function(){ editing=!editing; $('phrasesBox').classList.toggle('editing',editing); this.textContent=editing?'Listo':'Editar'; };
+  function addPh(){ var v=$('newPh').value.trim()||txt.value.trim(); if(!v) return; st.phrases.push(v); save('phrases',st.phrases); $('newPh').value=''; drawPh(); }
+  $('addPh').onclick=addPh;
+  $('newPh').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); addPh(); }});
+
+  /* ---- typing ---- */
+  txt.addEventListener('input',function(){ render(txt.value); save('draft',txt.value); });
+  txt.addEventListener('keydown',function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); remember(txt.value); render(txt.value); }});
+  $('show').onclick=function(){ remember(txt.value); render(txt.value); present(true); };
+  $('clear').onclick=function(){ remember(txt.value); txt.value=''; save('draft',''); render(''); txt.focus(); };
+
+  /* ---- size & colors ---- */
+  function drawSize(){ $('sizeLbl').textContent=(st.size+1)+' de '+CAPS.length; $('minus').disabled=st.size===0; $('plus').disabled=st.size===CAPS.length-1; }
+  $('minus').onclick=function(){ if(st.size>0){ st.size--; save('size',st.size); drawSize(); fit(); } };
+  $('plus').onclick=function(){ if(st.size<CAPS.length-1){ st.size++; save('size',st.size); drawSize(); fit(); } };
+  function drawScheme(){
+    read.className='read '+st.scheme+(st.flip?' flipped':'');
+    Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(b){ b.classList.toggle('on', b.dataset.s===st.scheme); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(b){ b.onclick=function(){ st.scheme=b.dataset.s; save('scheme',st.scheme); drawScheme(); }; });
+  $('flip').onclick=function(){ st.flip=!st.flip; save('flip',st.flip); drawScheme(); this.classList.toggle('on',st.flip); this.setAttribute('aria-pressed',st.flip); };
+
+  /* ---- presentation / fullscreen / screen awake ---- */
+  var lock=null;
+  function keepAwake(){ try{ if(navigator.wakeLock){ navigator.wakeLock.request('screen').then(function(l){lock=l;}).catch(function(){}); } }catch(e){} }
+  function present(on){
+    app.classList.toggle('present',on);
+    if(on){
+      keepAwake();
+      try{ var el=document.documentElement, rq=el.requestFullscreen||el.webkitRequestFullscreen; if(rq){ var p=rq.call(el); if(p&&p.catch) p.catch(function(){}); } }catch(e){}
+    } else {
+      try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){}); }catch(e){}
+      if(lock){ try{lock.release();}catch(e){} lock=null; }
+    }
+    requestAnimationFrame(fit);
+  }
+  $('present').onclick=function(){ present(true); };
+  $('exit').onclick=function(e){ e.stopPropagation(); present(false); };
+  read.addEventListener('click',function(e){ if(app.classList.contains('present') && e.target!==$('exit')) present(false); });
+  document.addEventListener('fullscreenchange',function(){ if(!document.fullscreenElement && app.classList.contains('present')) present(false); });
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible' && app.classList.contains('present')) keepAwake(); });
+
+  /* ---- dictation: Edu speaks, words appear big ---- */
+  var d=null, base='', useLang=true;
+  function showDictation(text, partial){
+    if(!partial){ render(text); return; }
+    out.classList.remove('empty'); out.textContent=text;
+    var s=document.createElement('span'); s.className='partial'; s.textContent=(text&&!/\s$/.test(text)?' ':'')+partial; out.appendChild(s); fit();
+  }
+  function micMsg(t){ var m=$('micMsg'); m.textContent=t||''; m.hidden=!t; }
+  function setMic(live){ $('mic').classList.toggle('live',live); $('mic').setAttribute('aria-pressed',live); $('micLbl').textContent=live?'Escuchando… tocá para parar':'Hablar'; }
+  try{
+    if(window.claude && claude.use){
+      claude.use('dictation').then(function(ns){
+        if(!ns) return;
+        d=ns; $('mic').hidden=false;
+        $('tip').textContent='Tocá "Hablar", decí lo que quieras y aparece en letras grandes. Tocá de nuevo para parar.';
+        d.onPartial(function(e){ showDictation(txt.value, e.text); });
+        d.onFinal(function(e){ var t=e.text; if(!txt.value) t=t.replace(/^\s+/,''); txt.value+=t; save('draft',txt.value); render(txt.value); });
+        d.onState(function(e){
+          setMic(e.state!=='idle');
+          if(e.state==='starting') micMsg('Preparando el micrófono… si te pide permiso, tocá Permitir.');
+          if(e.state==='listening'){ micMsg('Te escucho. Hablá ahora.'); if(!txt.value) { out.textContent='Te escucho…'; out.classList.add('empty'); fit(); } }
+          if(e.state==='idle'){ micMsg('');
+            render(txt.value); remember(txt.value);
+            if(e.reason==='hidden') micMsg('Se cortó porque saliste de la pantalla. Tocá "Hablar" otra vez.');
+            else if(e.reason==='rate_limited') micMsg('El micrófono está ocupado. Probá de nuevo en unos segundos.');
+            else if(e.reason && e.reason!=='stopped' && e.reason!=='viewer_stopped') micMsg('No se pudo escuchar ('+e.reason+'). Probá de nuevo o usá el micrófono del teclado.');
+          }
+        });
+        if(!ns) webSpeech();
+      }).catch(function(){ webSpeech(); });
+    } else webSpeech();
+  }catch(e){ webSpeech(); }
+
+  /* Fallback outside Claude (e.g. a normal web page in Chrome): the browser's own speech recognition */
+  var rec=null, recOn=false;
+  function webSpeech(){
+    if(d) return;
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
+    rec=new SR(); rec.lang='es-AR'; rec.continuous=true; rec.interimResults=true;
+    rec.onstart=function(){ recOn=true; setMic(true); micMsg('Te escucho. Hablá ahora.'); };
+    rec.onend=function(){ recOn=false; setMic(false); render(txt.value); remember(txt.value); if($('micMsg').textContent.indexOf('Te escucho')===0) micMsg(''); };
+    rec.onerror=function(e){ micMsg(e.error==='not-allowed'||e.error==='service-not-allowed' ? 'Este lugar no deja usar el micrófono. Usá el micrófono del teclado.' : (e.error==='no-speech' ? 'No escuché nada. Tocá "Hablar" y hablá más cerca.' : 'No se pudo escuchar ('+e.error+').')); };
+    rec.onresult=function(e){
+      var fin='', part='';
+      for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) fin+=e.results[i][0].transcript; else part+=e.results[i][0].transcript; }
+      if(fin){ fin=fin.trim(); txt.value=(txt.value?txt.value.replace(/\s*$/,' '):'')+fin; save('draft',txt.value); }
+      showDictation(txt.value, part.trim());
+    };
+    $('mic').hidden=false;
+    $('tip').textContent='Tocá "Hablar", decí lo que quieras y aparece en letras grandes. Tocá de nuevo para parar.';
+  }
+
+  $('mic').onclick=function(){
+    if(!d && rec){
+      if(recOn){ rec.stop(); return; }
+      micMsg(''); if(txt.value.trim()){ remember(txt.value); txt.value=''; } render('');
+      try{ rec.start(); }catch(e){ micMsg('No se pudo prender el micrófono. Probá de nuevo.'); }
+      return;
+    }
+    if(!d) return;
+    if(d.active()){ d.stop().catch(function(){}); return; }
+    micMsg('');
+    if(txt.value.trim()){ remember(txt.value); txt.value=''; }
+    render('');
+    d.start(useLang?{language:'es'}:undefined).catch(function(err){
+      var c=err&&err.code;
+      if(c==='unavailable' && useLang){ useLang=false; micMsg('Tocá "Hablar" de nuevo.'); }
+      else if(c==='unavailable'){ $('mic').hidden=true; micMsg('El micrófono no está disponible acá. Usá el micrófono del teclado.'); }
+      else if(c==='not_granted'){ $('mic').hidden=true; micMsg('No hay permiso para el micrófono. Podés usar el micrófono del teclado.'); }
+      else if(c==='dismissed'){ micMsg('Para usar el micrófono, tocá "Hablar" y aceptá el permiso.'); }
+      else if(c&&c!=='stopped'){ micMsg('No se pudo escuchar ('+c+'). Probá de nuevo o usá el micrófono del teclado.'); }
+    });
+  };
+
+  /* ---- start ---- */
+  window.addEventListener('resize',function(){ requestAnimationFrame(fit); });
+  if(window.ResizeObserver){ new ResizeObserver(function(){ fit(); }).observe(inner); }
+  txt.value=load('draft','Hola, abuela. ¿Cómo estás?');
+  $('flip').classList.toggle('on',st.flip); $('flip').setAttribute('aria-pressed',st.flip);
+  drawPh(); drawHist(); drawSize(); drawScheme(); render(txt.value);
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(fit); }
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
