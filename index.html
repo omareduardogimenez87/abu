@@ -291,6 +291,7 @@ button{cursor:pointer}
 
   /* ---- dictation: Edu speaks, words appear big ---- */
   var d=null, base='', useLang=true;
+  var rec=null, recOn=false, recWait=null; /* must be set before webSpeech() runs */
   function showDictation(text, partial){
     if(!partial){ render(text); return; }
     out.classList.remove('empty'); out.textContent=text;
@@ -323,14 +324,13 @@ button{cursor:pointer}
   }catch(e){ webSpeech(); }
 
   /* Fallback outside Claude (e.g. a normal web page in Chrome): the browser's own speech recognition */
-  var rec=null, recOn=false;
   function webSpeech(){
     if(d) return;
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
     rec=new SR(); rec.lang='es-AR'; rec.continuous=true; rec.interimResults=true;
-    rec.onstart=function(){ recOn=true; setMic(true); micMsg('Te escucho. Hablá ahora.'); };
+    rec.onstart=function(){ recOn=true; clearTimeout(recWait); setMic(true); micMsg('Te escucho. Hablá ahora.'); };
     rec.onend=function(){ recOn=false; setMic(false); render(txt.value); remember(txt.value); if($('micMsg').textContent.indexOf('Te escucho')===0) micMsg(''); };
-    rec.onerror=function(e){ micMsg(e.error==='not-allowed'||e.error==='service-not-allowed' ? 'Este lugar no deja usar el micrófono. Usá el micrófono del teclado.' : (e.error==='no-speech' ? 'No escuché nada. Tocá "Hablar" y hablá más cerca.' : 'No se pudo escuchar ('+e.error+').')); };
+    rec.onerror=function(e){ clearTimeout(recWait); micMsg(e.error==='not-allowed'||e.error==='service-not-allowed' ? 'No hay permiso para el micrófono. Tocá los tres puntitos ⋮ y elegí "Abrir en Chrome", o usá el micrófono del teclado.' : (e.error==='no-speech' ? 'No escuché nada. Tocá "Hablar" y hablá más cerca.' : (e.error==='network' ? 'Para dictar hace falta internet. Revisá la conexión y probá de nuevo.' : 'No se pudo escuchar ('+e.error+'). Probá abrirlo en Chrome: ⋮ y "Abrir en Chrome".'))); };
     rec.onresult=function(e){
       var fin='', part='';
       for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) fin+=e.results[i][0].transcript; else part+=e.results[i][0].transcript; }
@@ -345,10 +345,13 @@ button{cursor:pointer}
     if(!d && rec){
       if(recOn){ rec.stop(); return; }
       micMsg(''); if(txt.value.trim()){ remember(txt.value); txt.value=''; } render('');
-      try{ rec.start(); }catch(e){ micMsg('No se pudo prender el micrófono. Probá de nuevo.'); }
+      micMsg('Prendiendo el micrófono… si te pide permiso, tocá Permitir.');
+      clearTimeout(recWait);
+      recWait=setTimeout(function(){ if(!recOn) micMsg('El micrófono no arrancó. Si abriste esto desde otra app, tocá los tres puntitos ⋮ y elegí "Abrir en Chrome". Después tocá "Hablar" otra vez.'); },4000);
+      try{ rec.start(); }catch(e){ clearTimeout(recWait); micMsg('No se pudo prender el micrófono ('+(e&&e.name||'error')+'). Probá de nuevo.'); }
       return;
     }
-    if(!d) return;
+    if(!d){ micMsg('El micrófono no está disponible en este navegador. Abrí la página en Chrome, o usá el micrófono del teclado.'); return; }
     if(d.active()){ d.stop().catch(function(){}); return; }
     micMsg('');
     if(txt.value.trim()){ remember(txt.value); txt.value=''; }
